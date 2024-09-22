@@ -10,7 +10,12 @@ typedef struct Block {
   u64 data[];
 } Block;
 
-void printAllocator(void);
+typedef struct Allocator {
+  Block *head;
+  Block *tail;
+} Allocator;
+
+void printDebug(void);
 
 void *allocate(u64 size);
 void *reallocate(void *address, u64 size);

@@ -1,38 +1,15 @@
 #include <allocator.h>
+#include <debug.h>
 #include <error.h>
 #include <stdio.h>
 #include <unistd.h>
 
-static Block *FIRST_BLOCK = NULL;
-static Block *LAST_BLOCK = NULL;
+static Allocator allocator = {NULL, NULL};
+
+void printDebug(void) { printAllocator(&allocator); }
 
 u64 align(u64 size) {
   return (size + (sizeof(Block *) - 1)) & ~(sizeof(Block *) - 1);
-}
-
-void printAllocator(void) {
-  printf("=========================\n");
-  printf("Start: %p End: %p\n", (void *) FIRST_BLOCK, (void *) LAST_BLOCK);
-  printf("=========================\n");
-
-  Block *block = FIRST_BLOCK;
-
-  u32 i = 0;
-  while (block != NULL) {
-    printf(
-        "Block #%d - Start: %p End: %p\n",
-        i,
-        (void *) block,
-        (void *) ((char *) block + sizeof(Block) + block->size)
-    );
-    printf("\tSize: %lu\n", block->size);
-    printf("\tIs Free: %s\n", block->isFree == TRUE ? "true" : "false");
-    printf("\tNext: %p\n", (void *) block->next);
-    printf("\tData: %p\n", (void *) block->data);
-
-    block = block->next;
-    i++;
-  }
 }
 
 Block *getHeader(void *ptr) {
@@ -58,7 +35,7 @@ Block *requestBlock(size_t size) {
 }
 
 Block *firstFit(size_t size) {
-  Block *block = FIRST_BLOCK;
+  Block *block = allocator.head;
 
   while (block != NULL) {
     if (block->isFree == TRUE && block->size >= size) {
@@ -89,15 +66,15 @@ void *allocate(u64 size) {
   block->isFree = FALSE;
   block->next = NULL;
 
-  if (FIRST_BLOCK == NULL) {
-    FIRST_BLOCK = block;
+  if (allocator.head == NULL) {
+    allocator.head = block;
   }
 
-  if (LAST_BLOCK != NULL) {
-    LAST_BLOCK->next = block;
+  if (allocator.tail != NULL) {
+    allocator.tail->next = block;
   }
 
-  LAST_BLOCK = block;
+  allocator.tail = block;
 
   return block->data;
 }
