@@ -27,11 +27,13 @@ void printAllocator(Allocator *allocator) {
   printf("┐\n");
 
   printf("│ %s │\n", allocatorString);
+
   printf("└");
   for (u32 i = 0; i < allocatorStringLength + 2; i++) {
     printf("─");
   }
   printf("┘\n");
+  printf("Search Start: %p\n", (void *) allocator->searchStart);
 
   Block *block = allocator->head;
 

@@ -4,7 +4,9 @@
 #include <stdio.h>
 #include <unistd.h>
 
-static Allocator allocator = {NULL, NULL};
+#ifndef ALLOCATOR_TEST
+static Allocator allocator = {NULL, NULL, NULL, BEST_FIT};
+#endif
 
 void initAllocator(SearchMode searchMode) {
   allocator.head = NULL;
@@ -30,11 +32,9 @@ void resetAllocator(void) {
 
 void printDebug(void) { printAllocator(&allocator); }
 
-u64 align(u64 size) {
-  return (size + (sizeof(Block *) - 1)) & ~(sizeof(Block *) - 1);
-}
+Block *getSearchStart(void) { return allocator.searchStart; }
 
-Block *getHeader(void *ptr) {
+Block *getBlock(void *ptr) {
   if (ptr == NULL) {
     return NULL;
   }
@@ -78,7 +78,8 @@ Block *nextFit(u64 size) {
   while (block != NULL) {
     if (block->isFree == TRUE && block->size >= size) {
       block->isFree = FALSE;
-      allocator.searchStart = block->next;
+      allocator.searchStart = block;
+
       return block;
     }
 
@@ -89,7 +90,8 @@ Block *nextFit(u64 size) {
   while (block != allocator.searchStart) {
     if (block->isFree == TRUE && block->size >= size) {
       block->isFree = FALSE;
-      allocator.searchStart = block->next;
+      allocator.searchStart = block;
+
       return block;
     }
 
@@ -137,18 +139,21 @@ Block *bestFit(u64 size) {
 }
 
 Block *findFreeBlock(size_t size) {
-  Block *block = nextFit(size);
-
-  if (block != NULL) {
-    return block;
-  }
-
-  return bestFit(size);
+  switch (allocator.searchMode) {
+  case FIRST_FIT:
+    return firstFit(size);
+  case NEXT_FIT:
+    return nextFit(size);
+  case BEST_FIT:
+    return bestFit(size);
+  default:
+    return NULL;
+  };
 }
 
 void *allocate(u64 size) {
   size_t total_size = sizeof(Block) + size;
-  size = align(total_size);
+  size = ALIGN(total_size);
   Block *block = findFreeBlock(size);
 
   if (block != NULL) {
@@ -179,7 +184,7 @@ void deallocate(void *ptr) {
     return;
   }
 
-  Block *header = getHeader(ptr);
+  Block *header = getBlock(ptr);
 
   if (header == NULL || header->isFree == TRUE) {
     return;

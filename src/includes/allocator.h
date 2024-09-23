@@ -23,6 +23,8 @@ typedef struct Allocator {
   SearchMode searchMode;
 } Allocator;
 
+#define ALIGN(size) (size + (sizeof(Block *) - 1)) & ~(sizeof(Block *) - 1);
+
 void printDebug(void);
 
 void *allocate(u64 size);
@@ -31,5 +33,14 @@ void *callocate(u64 size, u64 count);
 void deallocate(void *address);
 void resetAllocator(void);
 void initAllocator(SearchMode searchMode);
+
+#ifdef ALLOCATOR_TEST_AUXILIARY_FUNCTIONS
+Block *getBlock(void *ptr);
+Block *firstFit(u64 size);
+Block *nextFit(u64 size);
+Block *bestFit(u64 size);
+Block *findFreeBlock(u64 size);
+Block *getSearchStart(void);
+#endif
 
 #endif
